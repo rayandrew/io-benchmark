@@ -1,0 +1,36 @@
+{
+    "mpi": {
+        "command": "flux run",
+        "ranks": "1",
+        "configuration": "-n 1"
+    },
+    "vol": {
+        "library": "/p/lustre5/sinurat1/stack/h5bench/vol-async-src:/p/lustre5/sinurat1/stack/h5bench/vol-async/lib:/p/lustre5/sinurat1/stack/h5bench/argobots/lib:/p/lustre5/sinurat1/stack/h5bench/hdf5:",
+        "path": "/p/lustre5/sinurat1/stack/h5bench/vol-async-src",
+        "connector": "async under_vol=0;under_info={}"
+    },
+    "file-system": {
+    },
+    "directory": "storage",
+    "benchmarks": [
+        {
+            "benchmark": "write",
+            "file": "test.h5",
+            "configuration": {
+                "MEM_PATTERN": "CONTIG",
+                "FILE_PATTERN": "CONTIG",
+                "TIMESTEPS": "5",
+                "DELAYED_CLOSE_TIMESTEPS": "2",
+                "COLLECTIVE_DATA": "YES",
+                "COLLECTIVE_METADATA": "YES",
+                "EMULATED_COMPUTE_TIME_PER_TIMESTEP": "1 s", 
+                "NUM_DIMS": "3",
+                "DIM_1": "64",
+                "DIM_2": "64",
+                "DIM_3": "64",
+                "CSV_FILE": "output.csv",
+                "MODE": "ASYNC"
+            }
+        }
+    ]
+}
