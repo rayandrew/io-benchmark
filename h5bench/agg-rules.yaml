@@ -1,0 +1,5 @@
+inclusion:
+  - dur < 1000
+exclusion:
+  - name LIKE 'H5*'
+  - cat IN {'POSIX', 'STDIO'}

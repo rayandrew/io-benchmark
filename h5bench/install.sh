@@ -10,6 +10,11 @@ ml load gcc-native/12.1
 ml load cmake/3.29.2
 ml load python/3.11
 
+if [ ! -f "$PREFIX/.venv/bin/activate" ]; then
+  echo "==> Creating new virtual environment..."
+  python3 -m venv "$PREFIX/.venv"
+fi
+
 echo "==> Activating existing virtual environment..."
 source "$PREFIX/.venv/bin/activate"
 
@@ -250,6 +255,35 @@ if [ ! -f "$PREFIX/dftracer/lib/libdftracer_preload.so" ] && \
   if grep -q 'aggregation_enable %d.*aggregation_file)' "$CFGMGR" 2>/dev/null; then
     echo "  -> Fixing configuration_manager.cpp varargs bug..."
     sed -i 's/aggregation_enable %d",\s*this->aggregation_file)/aggregation_file %s", this->aggregation_file.c_str())/' "$CFGMGR"
+  fi
+
+  # ---- Apply local DFTracer finstrument crash fix (if provided) ----
+  # Copies user-maintained patch source into dftracer before build.
+  # Optional and idempotent.
+  USER_FTRACE_PATCH_H="$SCRIPT_DIR/patches/dftracer/functions.h"
+  DFTRACER_FTRACE_CPP="$PREFIX/dftracer-src/src/dftracer/core/finstrument/functions.h"
+  if [ -f "$USER_FTRACE_PATCH_H" ]; then
+    if ! cmp -s "$USER_FTRACE_PATCH_H" "$DFTRACER_FTRACE_CPP"; then
+      echo "  -> Applying local patch: patches/dftracer/functions.h"
+      cp "$USER_FTRACE_PATCH_H" "$DFTRACER_FTRACE_CPP"
+    else
+      echo "  -> Local patch already applied: patches/dftracer/functions.h"
+    fi
+  else
+    echo "  -> Local patch not found, skipping: $USER_FTRACE_PATCH_H"
+  fi
+
+  USER_FTRACE_PATCH_CPP="$SCRIPT_DIR/patches/dftracer/functions.cpp"
+  DFTRACER_FTRACE_CPP="$PREFIX/dftracer-src/src/dftracer/core/finstrument/functions.cpp"
+  if [ -f "$USER_FTRACE_PATCH_CPP" ]; then
+    if ! cmp -s "$USER_FTRACE_PATCH_CPP" "$DFTRACER_FTRACE_CPP"; then
+      echo "  -> Applying local patch: patches/dftracer/functions.cpp"
+      cp "$USER_FTRACE_PATCH_CPP" "$DFTRACER_FTRACE_CPP"
+    else
+      echo "  -> Local patch already applied: patches/dftracer/functions.cpp"
+    fi
+  else
+    echo "  -> Local patch not found, skipping: $USER_FTRACE_PATCH_CPP"
   fi
 
   # Pass 2: deps now in $PREFIX/dftracer, find_package can locate them
