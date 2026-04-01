@@ -48,13 +48,13 @@ export NUM_PROCS=$((NUM_NODES * PPN))
 
 # IOR MPI-IO write parameters
 TRANSFER_SIZE=${TRANSFER_SIZE:-1m}
-BLOCK_SIZE=${BLOCK_SIZE:-32m}
+BLOCK_SIZE=${BLOCK_SIZE:-2g}
 REPETITIONS=${REPETITIONS:-5}
-FILE_PER_PROC=${FILE_PER_PROC:-1}
 
 IOR_ARGS=(
   -a MPIIO
   -w
+  -c                      # collective I/O (MPI_File_write_at_all)
   -t "$TRANSFER_SIZE"
   -b "$BLOCK_SIZE"
   -i "$REPETITIONS"
@@ -62,10 +62,6 @@ IOR_ARGS=(
   -k                      # keep files after test
   -o "$FILES_DIR/testfile"
 )
-
-if [ "$FILE_PER_PROC" -eq 1 ]; then
-  IOR_ARGS+=(-F)
-fi
 
 echo "Benchmark configuration:"
 echo "========================"
@@ -87,11 +83,10 @@ fi
 echo "Number of nodes: $NUM_NODES"
 echo "Processes per node: $PPN"
 echo "Total number of processes: $NUM_PROCS"
-echo "IOR API: MPIIO"
+echo "IOR API: MPIIO (collective)"
 echo "Transfer size: $TRANSFER_SIZE"
 echo "Block size: $BLOCK_SIZE"
 echo "Repetitions: $REPETITIONS"
-echo "File per process: $FILE_PER_PROC"
 echo "Base output directory: $BASE_OUTPUT_DIR"
 echo "Files directory: $FILES_DIR"
 echo "Traces directory: $TRACES_DIR"
