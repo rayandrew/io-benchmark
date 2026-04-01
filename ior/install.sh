@@ -54,6 +54,8 @@ if [ ! -f "$PREFIX/dftracer/lib/libdftracer_preload.so" ] &&
     -DCMAKE_INSTALL_PREFIX="$PREFIX/dftracer"
     -DCMAKE_C_COMPILER=mpicc
     -DCMAKE_CXX_COMPILER=mpicxx
+    -DMPI_C_COMPILER=mpicc
+    -DMPI_CXX_COMPILER=mpicxx
     -DDFTRACER_ENABLE_MPI=ON
     -DCMAKE_CXX_FLAGS="-fpermissive"
     -DCMAKE_PREFIX_PATH="$PREFIX/dftracer"
