@@ -146,12 +146,12 @@ if [ ! -f "$PREFIX/ior-install/bin/ior" ]; then
     --prefix="$PREFIX/ior-install" \
     CC=mpicc \
     CXX=mpicxx \
-    CFLAGS="-g -O2 -finstrument-functions -fvisibility=default" \
-    CXXFLAGS="-g -O2 -finstrument-functions -fvisibility=default" \
+    CFLAGS="-g -O0 -finstrument-functions -fno-inline -fvisibility=default" \
+    CXXFLAGS="-g -O0 -finstrument-functions -fno-inline -fvisibility=default" \
     LDFLAGS="-rdynamic -Wl,-E -Wl,--export-dynamic -L$DFTRACER_LIB_DIR -Wl,-rpath,$DFTRACER_LIB_DIR" \
     LIBS="-ldftracer_core -ldl"
   make -j
-  make install INSTALL="install -s --strip-program=/bin/true"
+  make install
   cd "$PREFIX"
 else
   echo "==> IOR already installed, skipping."
