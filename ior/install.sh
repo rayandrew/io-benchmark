@@ -71,6 +71,16 @@ if [ ! -f "$PREFIX/dftracer/lib/libdftracer_preload.so" ] &&
   make -j || true # first pass may partially fail after deps are built
   cd "$PREFIX/dftracer-src"
 
+  # ---- Fix brahma: force Cray MPICH detection ----
+  # Brahma's CMake fails to detect Cray MPICH as a known MPI implementation,
+  # so BRAHMA_MPI_IMPL_CRAYMPICH is never defined in brahma_config.hpp.
+  # Without it, every MPI-IO wrapper function in mpiio.cpp is #ifdef'd out.
+  BRAHMA_CONFIG="$PREFIX/dftracer/include/brahma/brahma_config.hpp"
+  if [ -f "$BRAHMA_CONFIG" ] && ! grep -q 'BRAHMA_MPI_IMPL_CRAYMPICH' "$BRAHMA_CONFIG"; then
+    echo "  -> Patching brahma_config.hpp: adding BRAHMA_MPI_IMPL_CRAYMPICH..."
+    sed -i '/BRAHMA_ENABLE_MPI/a #define BRAHMA_MPI_IMPL_CRAYMPICH' "$BRAHMA_CONFIG"
+  fi
+
   # ---- Fix pre-existing dftracer bug: std::string in variadic macro ----
   # configuration_manager.cpp passes std::string to %d format specifier
   CFGMGR="src/dftracer/core/utils/configuration_manager.cpp"
@@ -106,6 +116,17 @@ if [ ! -f "$PREFIX/dftracer/lib/libdftracer_preload.so" ] &&
     fi
   else
     echo "  -> Local patch not found, skipping: $USER_FTRACE_PATCH_CPP"
+  fi
+
+  # ---- Force MPI detection on Cray systems ----
+  # Cray provides MPI through compiler wrappers (mpicc/mpicxx) which handle
+  # include paths and linking automatically. However, CMake's find_package(MPI)
+  # fails to detect this, so DFTRACER_MPI_ENABLE never gets set and MPI-IO
+  # wrappers are skipped. We patch CMakeLists.txt to force-enable MPI when
+  # DFTRACER_ENABLE_MPI is ON, since we know mpicc is the compiler.
+  if grep -q 'MPI_CXX_FOUND' CMakeLists.txt; then
+    echo "  -> Patching CMakeLists.txt: force MPI detection for Cray..."
+    sed -i 's/if(MPI_CXX_FOUND AND (\(DFTRACER_ENABLE_MPI\)/if((\1)/' CMakeLists.txt
   fi
 
   # Pass 2: deps now in $PREFIX/dftracer, find_package can locate them
