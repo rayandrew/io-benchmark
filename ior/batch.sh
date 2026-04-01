@@ -20,18 +20,6 @@ export PATH="$PREFIX/ior-install/bin:$PREFIX/dftracer/bin:$PATH"
 YAML_CPP_LIB=/usr/tce/packages/python/python-3.11.5/lib
 export LD_LIBRARY_PATH="$PREFIX/dftracer/lib:$PREFIX/dftracer/lib64:$YAML_CPP_LIB:$LD_LIBRARY_PATH"
 
-ts=$(date +%Y%m%d-%H%M%S)
-APP_ID="${APP_ID:-"no-dft"}"
-EXP_NAME="${EXP_NAME:-"mpiio-write"}"
-BASE_OUTPUT_DIR="/p/lustre5/$USER/stack/ior/results/$EXP_NAME/$APP_ID/$ts"
-FILES_DIR="$BASE_OUTPUT_DIR/files"
-TRACES_DIR="$BASE_OUTPUT_DIR/traces"
-mkdir -p "$FILES_DIR"
-mkdir -p "$TRACES_DIR"
-
-export DFTRACER_LOG_FILE="$TRACES_DIR/trace"
-export DFTRACER_LD_PRELOAD="$PREFIX/dftracer/lib64/libdftracer_preload.so"
-
 export DFTRACER_ENABLE=${DFTRACER_ENABLE:-0}
 export DFTRACER_INIT=PRELOAD
 export DFTRACER_DATA_DIR="all"
@@ -47,9 +35,21 @@ export PPN=${PPN:-64}
 export NUM_PROCS=$((NUM_NODES * PPN))
 
 # IOR MPI-IO write parameters
-TRANSFER_SIZE=${TRANSFER_SIZE:-1m}
-BLOCK_SIZE=${BLOCK_SIZE:-96m}
+TRANSFER_SIZE=${TRANSFER_SIZE:-4m}
+BLOCK_SIZE=${BLOCK_SIZE:-512m}
 REPETITIONS=${REPETITIONS:-2}
+
+ts=$(date +%Y%m%d-%H%M%S)
+APP_ID="${APP_ID:-"no-dft"}"
+EXP_NAME="${EXP_NAME:-"mpiio-write"}"
+BASE_OUTPUT_DIR="/p/lustre5/$USER/stack/ior/results/${EXP_NAME}_block-${BLOCK_SIZE}_xfer-${TRANSFER_SIZE}/${APP_ID}/${ts}"
+FILES_DIR="$BASE_OUTPUT_DIR/files"
+TRACES_DIR="$BASE_OUTPUT_DIR/traces"
+mkdir -p "$FILES_DIR"
+mkdir -p "$TRACES_DIR"
+
+export DFTRACER_LOG_FILE="$TRACES_DIR/trace"
+export DFTRACER_LD_PRELOAD="$PREFIX/dftracer/lib64/libdftracer_preload.so"
 
 IOR_ARGS=(
   -a MPIIO
