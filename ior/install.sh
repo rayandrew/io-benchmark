@@ -134,12 +134,13 @@ if [ ! -f "$PREFIX/ior-install/bin/ior" ]; then
   cd ior-src
   git checkout master
 
-  # Remove 'static' from function definitions so all symbols are exported
+  # Remove 'static' qualifier from functions so all symbols are exported
   # to the dynamic symbol table (required for dladdr to resolve names).
   # Without this, static functions show as hex addresses in DFTracer traces.
+  # Strips 'static' from both declarations and definitions, but preserves
+  # 'static' on variable declarations (lines without parentheses).
   echo "  -> Removing static linkage from IOR source for symbol visibility..."
-  find src -name '*.c' -exec sed -i 's/^static \(.*(.*).*{.*\)/\1/' {} +
-  find src -name '*.c' -exec sed -i 's/^static \(.*(.*).*\)$/\1/' {} +
+  find src -name '*.[ch]' -exec sed -i '/(/s/^static //' {} +
 
   # Determine dftracer lib directory (lib or lib64)
   if [ -d "$PREFIX/dftracer/lib64" ]; then
