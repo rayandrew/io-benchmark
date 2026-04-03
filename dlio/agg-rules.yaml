@@ -1,0 +1,5 @@
+inclusion:
+  - dur < 1000
+exclusion:
+  - name LIKE 'MPI*' AND dur > 1000
+  - cat IN {'POSIX', 'STDIO'} AND dur > 1000
