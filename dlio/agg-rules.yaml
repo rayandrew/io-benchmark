@@ -1,5 +1,5 @@
 inclusion:
-  - dur < 1000
-exclusion:
-  - name LIKE 'MPI*' AND dur > 1000
-  - cat IN {'POSIX', 'STDIO'} AND dur > 1000
+  - name == 'lseek64'
+  - name == '__fxstat64'
+  - name == 'close'
+  - name == 'open64'

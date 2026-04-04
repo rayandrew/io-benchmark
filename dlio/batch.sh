@@ -71,7 +71,7 @@ if [ -d "$PREFIX/dftracer/lib64" ]; then
 fi
 
 TORCH_LIB_DIR="/p/lustre5/$USER/stack/dlio/.venv/lib/python3.11/site-packages/torch/lib"
-export LD_LIBRARY_PATH="$ROCM_HOME/lib:$PREFIX/dftracer/lib:$PREFIX/dftracer/lib64:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$ROCM_HOME/lib:$PREFIX/dftracer/lib:${LD_LIBRARY_PATH:-}"
 if [ -d "$TORCH_LIB_DIR" ]; then
   export LD_LIBRARY_PATH="$TORCH_LIB_DIR:$LD_LIBRARY_PATH"
 fi
@@ -85,16 +85,6 @@ export LD_LIBRARY_PATH="/opt/cray/pe/mpich/9.0.1/ofi/CRAYCLANG/20.0/lib:$LD_LIBR
 export NCCL_NET_GDR_LEVEL=${NCCL_NET_GDR_LEVEL:-3}
 export FI_CXI_ATS=${FI_CXI_ATS:-0}
 export LD_PRELOAD="/lib64/libomp.so:${LD_PRELOAD:-}"
-
-export DFTRACER_ENABLE=${DFTRACER_ENABLE:-0}
-export DFTRACER_INIT=INIT
-export DFTRACER_DATA_DIR="all"
-export DFTRACER_INC_METADATA=${DFTRACER_INC_METADATA:-1}
-export DFTRACER_TRACE_COMPRESSION=${DFTRACER_TRACE_COMPRESSION:-1}
-export DFTRACER_ENABLE_AGGREGATION=${DFTRACER_ENABLE_AGGREGATION:-0}
-export DFTRACER_AGGREGATION_TYPE=${DFTRACER_AGGREGATION_TYPE:-FULL}
-export DFTRACER_TRACE_INTERVAL_MS=${DFTRACER_TRACE_INTERVAL_MS:-1000}
-export DFTRACER_AGGREGATION_FILE=${DFTRACER_AGGREGATION_FILE:-}
 
 export NUM_NODES=${NUM_NODES:-8}
 export PPN=${PPN:-4}
@@ -117,7 +107,8 @@ if [ -z "$BASE_NUM_FILES_TRAIN" ]; then
   echo "==> Could not determine dataset.num_files_train from $WORKLOAD_CONFIG_FILE"
   exit 1
 fi
-EFFECTIVE_NUM_FILES_TRAIN=$((BASE_NUM_FILES_TRAIN * 10))
+# EFFECTIVE_NUM_FILES_TRAIN=$((BASE_NUM_FILES_TRAIN * NUM_NODES))
+EFFECTIVE_NUM_FILES_TRAIN=$((BASE_NUM_FILES_TRAIN * NUM_NODES))
 
 to_hydra_bool() {
   if [ "$1" = "1" ]; then
@@ -135,12 +126,20 @@ DATASET_ROOT="$PREFIX/dataset"
 DATA_DIR="$DATASET_ROOT/$DLIO_WORKLOAD"
 CHECKPOINT_DIR="$BASE_OUTPUT_DIR/checkpoints"
 DLIO_OUTPUT_DIR="$BASE_OUTPUT_DIR/output"
-TRACES_DIR="$BASE_OUTPUT_DIR/traces"
 
-mkdir -p "$DATASET_ROOT" "$DATA_DIR" "$CHECKPOINT_DIR" "$DLIO_OUTPUT_DIR" "$TRACES_DIR"
+export DFTRACER_ENABLE=${DFTRACER_ENABLE:-0}
+# export DFTRACER_INIT=INIT
+# export DFTRACER_DATA_DIR="all"
+export DFTRACER_INC_METADATA=${DFTRACER_INC_METADATA:-1}
+export DFTRACER_TRACE_COMPRESSION=${DFTRACER_TRACE_COMPRESSION:-1}
+export DFTRACER_ENABLE_AGGREGATION=${DFTRACER_ENABLE_AGGREGATION:-0}
+export DFTRACER_AGGREGATION_TYPE=${DFTRACER_AGGREGATION_TYPE:-FULL}
+export DFTRACER_TRACE_INTERVAL_MS=${DFTRACER_TRACE_INTERVAL_MS:-1000}
+export DFTRACER_AGGREGATION_FILE=${DFTRACER_AGGREGATION_FILE:-}
+
+mkdir -p "$DATASET_ROOT" "$DATA_DIR" "$CHECKPOINT_DIR" "$DLIO_OUTPUT_DIR"
 cp "$WORKLOAD_CONFIG_FILE" "$BASE_OUTPUT_DIR/workload.yaml"
 
-export DFTRACER_LOG_FILE="$TRACES_DIR/trace"
 export DFTRACER_LD_PRELOAD="$DFTRACER_LIB_DIR/libdftracer_preload.so"
 
 DLIO_ARGS=(
@@ -167,8 +166,7 @@ echo "DLIO checkpoint: $DLIO_CHECKPOINT"
 echo "DLIO evaluation: $DLIO_EVAL"
 echo "DFTracer enabled: $DFTRACER_ENABLE"
 if [ "$DFTRACER_ENABLE" -eq 1 ]; then
-  echo "  DFTracer log file: $DFTRACER_LOG_FILE"
-  echo "  DFTracer data directory: $DFTRACER_DATA_DIR"
+  # echo "  DFTracer data directory: $DFTRACER_DATA_DIR"
   echo "  DFTracer include metadata: $DFTRACER_INC_METADATA"
   echo "  DFTracer trace compression: $DFTRACER_TRACE_COMPRESSION"
   echo "  DFTracer enable aggregation: $DFTRACER_ENABLE_AGGREGATION"
@@ -185,10 +183,10 @@ echo "Processes per node: $PPN"
 echo "Total number of processes: $NUM_PROCS"
 echo "Base output directory: $BASE_OUTPUT_DIR"
 echo "Dataset root: $DATASET_ROOT"
-echo "Data directory: $DATA_DIR"
+# echo "Data directory: $DATA_DIR"
 echo "Checkpoint directory: $CHECKPOINT_DIR"
 echo "DLIO output directory: $DLIO_OUTPUT_DIR"
-echo "Traces directory: $TRACES_DIR"
+echo "Traces directory: $DLIO_OUTPUT_DIR"
 echo "========================"
 
 env > "$BASE_OUTPUT_DIR/env.txt"
@@ -198,16 +196,16 @@ python3 -m pip show dlio_benchmark > "$BASE_OUTPUT_DIR/pip_show_dlio_benchmark.t
 ulimit -c unlimited
 
 # --env=LD_PRELOAD="${DFTRACER_LD_PRELOAD}" \
+# --env=DFTRACER_DATA_DIR="${DFTRACER_DATA_DIR}" \
+# --env=DFTRACER_INIT="${DFTRACER_INIT}" \
+# --env=DFTRACER_LOG_FILE="${DFTRACER_LOG_FILE}" \
 
 if [[ "$DFTRACER_ENABLE" -eq 1 ]]; then
-  echo "DFTracer is enabled. Traces will be saved to: $TRACES_DIR"
+  echo "DFTracer is enabled. Traces will be saved to: $DLIO_OUTPUT_DIR"
   flux run -N "$NUM_NODES" -n "$NUM_PROCS" \
       --exclusive -o fastload=on \
       --env=DFTRACER_ENABLE="${DFTRACER_ENABLE}" \
-      --env=DFTRACER_INIT="${DFTRACER_INIT}" \
-      --env=DFTRACER_DATA_DIR="${DFTRACER_DATA_DIR}" \
       --env=DFTRACER_INC_METADATA="${DFTRACER_INC_METADATA}" \
-      --env=DFTRACER_LOG_FILE="${DFTRACER_LOG_FILE}" \
       dlio_benchmark "${DLIO_ARGS[@]}" 2>&1 | tee "$BASE_OUTPUT_DIR/log.txt"
 else
   echo "DFTracer is disabled. No traces will be collected."
